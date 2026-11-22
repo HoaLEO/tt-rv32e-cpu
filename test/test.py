@@ -6,12 +6,24 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge
 
 PASS_CODE = 0x01
 FAIL_CODE = 0xFF
 MAX_CYCLES = 200_000
 CHECK_EVERY = 1_000
+
+
+async def trace_cpu(dut, log, depth=24):
+    """Ghi lại các lệnh CPU vừa thực thi (chỉ dùng ở mô phỏng RTL)."""
+    cpu = dut.user_project.u_cpu
+    while True:
+        await RisingEdge(dut.clk)
+        if cpu.state.value.is_resolvable and int(cpu.state.value) == 1:   # S_EXEC
+            pc = int(cpu.pc.value)
+            ins = int(cpu.instr.value)
+            log.append(f"pc={pc:08x} instr={ins:08x} rs1={cpu.rs1_data.value} rs2={cpu.rs2_data.value} alu_y={cpu.alu_y.value}")
+            del log[:-depth]
 
 
 def ram_word(dut, addr):
@@ -35,6 +47,13 @@ async def test_program(dut):
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
 
+    trace = []
+    try:
+        dut.user_project.u_cpu.state  # chỉ có ở mô phỏng RTL, không có ở gate-level
+        cocotb.start_soon(trace_cpu(dut, trace))
+    except AttributeError:
+        pass
+
     dut._log.info("Chay chuong trinh thu")
     result = 0
     cycles = 0
@@ -47,6 +66,8 @@ async def test_program(dut):
             break
 
     dut._log.info(f"uo_out = 0x{result:02x} sau khoang {cycles} chu ky")
+    if result != PASS_CODE:
+        dut._log.info("Cac lenh cuoi cung da thuc thi:\n" + "\n".join(trace))
     assert result == PASS_CODE, f"Chuong trinh bao FAIL hoac het gio (uo_out = 0x{result:02x})"
 
     # Kiểm tra thêm nội dung RAM do chương trình ghi
