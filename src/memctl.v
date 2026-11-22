@@ -43,9 +43,10 @@ module memctl (
     wire        spi_busy, spi_done;
     wire [31:0] spi_rdata;
 
-    // Đọc luôn lấy cả từ 32 bit tại địa chỉ đã căn 4 byte
+    // Đọc luôn lấy cả từ 32 bit (4 byte) tại địa chỉ đã căn 4 byte,
+    // CPU tự tách byte / half-word cần dùng. Ghi thì đúng số byte của lệnh.
     wire [23:0] spi_addr  = mem_we ? mem_addr[23:0] : {mem_addr[23:2], 2'b00};
-    wire [1:0]  nbytes_m1 = (mem_size == 2'd2) ? 2'd3 : mem_size;
+    wire [1:0]  nbytes_m1 = (!mem_we || mem_size == 2'd2) ? 2'd3 : mem_size;
 
     spi_master u_spi (
         .clk       (clk),
