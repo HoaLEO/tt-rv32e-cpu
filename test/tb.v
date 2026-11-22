@@ -1,8 +1,9 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-/* This testbench just instantiates the module and makes some convenient wires
-   that can be driven / tested by the cocotb test.py.
+/* Testbench: CPU tt_um_hoaleo_rv32e nối với hai chip nhớ SPI mô phỏng
+   (flash chứa program.hex và RAM dữ liệu). cocotb (test.py) lo clock và reset,
+   rồi chờ chương trình ghi kết quả ra uo_out: 0x01 = PASS, 0xFF = FAIL.
 */
 module tb ();
 
@@ -18,7 +19,7 @@ module tb ();
   reg rst_n;
   reg ena;
   reg [7:0] ui_in;
-  reg [7:0] uio_in;
+  wire [7:0] uio_in;
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
@@ -27,8 +28,7 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // Replace tt_um_example with your module name:
-  tt_um_example user_project (
+  tt_um_hoaleo_rv32e user_project (
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST
@@ -45,5 +45,24 @@ module tb ();
       .clk    (clk),      // clock
       .rst_n  (rst_n)     // not reset
   );
+
+  // ---------------- Bộ nhớ SPI mô phỏng ----------------
+  wire cs_flash_n = uio_out[0];
+  wire spi_mosi   = uio_out[1];
+  wire spi_sck    = uio_out[3];
+  wire cs_ram_n   = uio_out[6];
+  wire flash_miso, ram_miso;
+
+  spi_mem_model #(.BYTES(4096), .LOAD_HEX(1), .HEX_FILE("program.hex")) flash (
+      .cs_n(cs_flash_n), .sck(spi_sck), .mosi(spi_mosi), .miso(flash_miso)
+  );
+
+  spi_mem_model #(.BYTES(4096), .LOAD_HEX(0)) ram (
+      .cs_n(cs_ram_n), .sck(spi_sck), .mosi(spi_mosi), .miso(ram_miso)
+  );
+
+  // MISO đi chung một dây: chip nào đang được chọn thì lái dây đó
+  wire spi_miso = !cs_flash_n ? flash_miso : (!cs_ram_n ? ram_miso : 1'b0);
+  assign uio_in = {5'b0, spi_miso, 2'b0};
 
 endmodule

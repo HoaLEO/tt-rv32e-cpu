@@ -1,11 +1,21 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2026 HoaLEO
  * SPDX-License-Identifier: Apache-2.0
  */
 
 `default_nettype none
 
-module tt_um_example (
+// Module top cho Tiny Tapeout: CPU RV32E + bộ nhớ SPI ngoài.
+//
+// Chân uio theo chuẩn QSPI Pmod của Tiny Tapeout (dùng ở chế độ SPI 1 bit):
+//   uio[0] CS0  -> flash (chương trình)
+//   uio[1] MOSI
+//   uio[2] MISO
+//   uio[3] SCK
+//   uio[6] CS1  -> RAM (dữ liệu)
+// uo_out : cổng ra 8 bit (CPU ghi vào địa chỉ 0x0200_0000)
+// ui_in  : cổng vào 8 bit (CPU đọc từ địa chỉ 0x0200_0000)
+module tt_um_hoaleo_rv32e (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -15,13 +25,47 @@ module tt_um_example (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
+    wire rst = ~rst_n;
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    wire        mem_valid, mem_we, mem_ready;
+    wire [31:0] mem_addr, mem_wdata, mem_rdata;
+    wire [1:0]  mem_size;
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    rv32e_cpu u_cpu (
+        .clk      (clk),
+        .rst      (rst),
+        .mem_valid(mem_valid),
+        .mem_we   (mem_we),
+        .mem_addr (mem_addr),
+        .mem_wdata(mem_wdata),
+        .mem_size (mem_size),
+        .mem_ready(mem_ready),
+        .mem_rdata(mem_rdata)
+    );
 
+    wire spi_sck, spi_mosi, cs_flash_n, cs_ram_n;
+
+    memctl u_mem (
+        .clk       (clk),
+        .rst       (rst),
+        .mem_valid (mem_valid),
+        .mem_we    (mem_we),
+        .mem_addr  (mem_addr),
+        .mem_wdata (mem_wdata),
+        .mem_size  (mem_size),
+        .mem_ready (mem_ready),
+        .mem_rdata (mem_rdata),
+        .gpio_out  (uo_out),
+        .gpio_in   (ui_in),
+        .spi_sck   (spi_sck),
+        .spi_mosi  (spi_mosi),
+        .spi_miso  (uio_in[2]),
+        .cs_flash_n(cs_flash_n),
+        .cs_ram_n  (cs_ram_n)
+    );
+
+    assign uio_out = {1'b0, cs_ram_n, 1'b0, 1'b0, spi_sck, 1'b0, spi_mosi, cs_flash_n};
+    assign uio_oe  = 8'b0100_1011;
+
+    wire _unused = &{ena, uio_in[7:3], uio_in[1:0], 1'b0};
 endmodule

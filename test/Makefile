@@ -6,7 +6,7 @@ SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = project.v
+PROJECT_SOURCES = project.v cpu.v alu.v regfile.v imm_gen.v control.v memctl.v spi_master.v
 
 ifneq ($(GATES),yes)
 
@@ -35,6 +35,7 @@ endif
 COMPILE_ARGS 		+= -I$(SRC_DIR)
 
 # Include the testbench sources:
+VERILOG_SOURCES += $(PWD)/spi_mem_model.v
 VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL = tb
 
