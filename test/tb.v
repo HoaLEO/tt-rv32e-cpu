@@ -14,6 +14,10 @@ module tb ();
     #1;
   end
 
+  // cocotb đặt dump_on = 0 để ngừng ghi dạng sóng khi chạy bộ test dài
+  reg dump_on = 1'b1;
+  always @(negedge dump_on) $dumpoff;
+
   // Wire up the inputs and outputs:
   reg clk;
   reg rst_n;
@@ -53,7 +57,7 @@ module tb ();
   wire cs_ram_n   = uio_out[6];
   wire flash_miso, ram_miso;
 
-  spi_mem_model #(.BYTES(4096), .LOAD_HEX(1), .HEX_FILE("program.hex")) flash (
+  spi_mem_model #(.BYTES(16384), .LOAD_HEX(1), .HEX_FILE("program.hex")) flash (
       .cs_n(cs_flash_n), .sck(spi_sck), .mosi(spi_mosi), .miso(flash_miso)
   );
 
