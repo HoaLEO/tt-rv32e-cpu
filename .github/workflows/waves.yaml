@@ -1,0 +1,27 @@
+# Chạy chương trình thử một lần và lưu dạng sóng ở định dạng VCD (đọc được bằng mọi công cụ),
+# dùng để làm ảnh minh họa. Chỉ chạy khi đẩy lên nhánh "media".
+name: waves
+on:
+  push:
+    branches: [media]
+jobs:
+  waves:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: sudo apt-get update && sudo apt-get install -y iverilog
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r test/requirements.txt
+      - name: Simulate (VCD instead of FST)
+        run: |
+          cd test
+          make clean
+          make FST= COCOTB_TEST_FILTER=test_program
+          mv tb.fst tb.vcd
+          ls -la tb.vcd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: waves-vcd
+          path: test/tb.vcd
