@@ -14,6 +14,8 @@ It runs code from an external SPI flash, keeps data in an external SPI RAM, and 
 
 ![Chip layout, 3x2 Tiny Tapeout tiles](docs/images/layout.jpg)
 
+**[View the layout in 3D](https://gds-viewer.tinytapeout.com/?model=https://hoaleo.github.io/tt-rv32e-cpu/tinytapeout.oas&pdk=sky130A)**
+
 > **Who did what.** This is a learning project. The design, the tests and the layout flow were written by
 > [Claude](https://claude.ai) (an AI model by Anthropic). I, [HoaLEO](https://github.com/HoaLEO), followed every step,
 > asked why at each one, and used the project to learn how a chip is designed, from transistors to layout.
@@ -133,7 +135,8 @@ see [`src/config.json`](src/config.json) for the settings.
 
 ![Standard cells, close up](docs/images/layout_cells.png)
 
-A 3D view of the layout is published to this repository's GitHub Pages by the `gds` workflow.
+**[Open the 3D layout viewer](https://gds-viewer.tinytapeout.com/?model=https://hoaleo.github.io/tt-rv32e-cpu/tinytapeout.oas&pdk=sky130A)**: rotate and zoom the chip, turn each metal layer on and off, and click any cell to see its name.
+The viewer files are published to GitHub Pages by the `gds` workflow on every push to `main`.
 
 ## Known limitations
 
